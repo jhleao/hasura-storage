@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/hasura/go-graphql-client"
 	"github.com/nhost/hasura-storage/controller"
@@ -127,13 +128,28 @@ func (md FileMetadataWithBucket) ToControllerType() controller.FileMetadataWithB
 type HasuraAuthorizer func(in http.Header) graphql.RequestModifier
 
 func ForWardHeadersAuthorizer(in http.Header) graphql.RequestModifier {
+	DONT_FORWARD := []string{"content-type", "content-length"}
+
 	return func(out *http.Request) {
 		for k, v := range in {
+			if contains(DONT_FORWARD, strings.ToLower(k)) {
+				continue
+			}
 			for _, vv := range v {
 				out.Header.Add(k, vv)
 			}
 		}
 	}
+}
+
+// Insensitive contains
+func contains(arr []string, str string) bool {
+	for _, a := range arr {
+		if strings.ToLower(a) == strings.ToLower(str) {
+			return true
+		}
+	}
+	return false
 }
 
 type Hasura struct {
